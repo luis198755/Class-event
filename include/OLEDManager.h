@@ -14,6 +14,7 @@ public:
     void displayTime(const DateTime& now);
     void displayEvent(const EventManager::Event& event);
     void clear();
+    void showTVTurnOnEffect();
 
 private:
     Adafruit_SSD1306 display;
@@ -21,6 +22,12 @@ private:
     uint8_t height;
     unsigned long eventDisplayStartTime;
     bool isDisplayingEvent;
+    void drawTVNoise();
+    void fadeOutEffect();
+    void flickerEffect();
+    void scanningLines();
+    void geometricShapes();
+    void textEmergence();
 };
 
-#endif 
+#endif
