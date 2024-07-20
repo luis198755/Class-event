@@ -15,12 +15,13 @@ public:
         uint64_t timeCode;
         uint8_t scenario;
         uint8_t cycle;
-        String description;  // Added for better event identification
+        String description;
+        bool isDaily;
 
         Event(uint16_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second, 
-              uint8_t sc, uint8_t cy, const String& desc = "")
+              uint8_t sc, uint8_t cy, const String& desc = "", bool daily = false)
             : timeCode(encodeTime(year, month, day, hour, minute, second)), 
-              scenario(sc), cycle(cy), description(desc) {}
+              scenario(sc), cycle(cy), description(desc), isDaily(daily) {}
 
         bool operator<(const Event& other) const {
             return timeCode < other.timeCode;
@@ -47,14 +48,14 @@ public:
     EventManager(RTC_DS3231& rtc);
     void begin();
     bool addEvent(uint16_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second, 
-                  uint8_t scenario, uint8_t cycle, const String& description = "");
+                  uint8_t scenario, uint8_t cycle, const String& description = "", bool isDaily = false);
     bool removeEvent(uint64_t timeCode);
     void clearEvents();
     void update();
     uint8_t getCurrentScenario() const;
     uint8_t getCurrentCycle() const;
     void setEventCallback(EventCallback callback);
-    void printEvents() const;  // For debugging
+    void printEvents() const;
 
 private:
     std::set<Event> events;
@@ -69,6 +70,9 @@ private:
     std::set<Event>::const_iterator findNextEvent(uint64_t currentTimeCode) const;
     void processNextPendingEvent();
     bool isValidDate(uint16_t year, uint8_t month, uint8_t day) const;
+    void rescheduleEvent(const Event& event);
+    void addDailyEvent(uint8_t hour, uint8_t minute, uint8_t second, 
+                       uint8_t scenario, uint8_t cycle, const String& description);
 };
 
 #endif // EVENT_MANAGER_H

@@ -5,17 +5,35 @@ EventManager::EventManager(RTC_DS3231& rtc)
     : rtc(rtc), currentScenario(0), currentCycle(0), isProcessingEvents(false), lastProcessTime(0) {}
 
 void EventManager::begin() {
-    // No need for timer setup, we'll use millis() for timing
+    // Initialization code if needed
 }
 
 bool EventManager::addEvent(uint16_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second, 
-                            uint8_t scenario, uint8_t cycle, const String& description) {
+                            uint8_t scenario, uint8_t cycle, const String& description, bool isDaily) {
+    if (isDaily) {
+        addDailyEvent(hour, minute, second, scenario, cycle, description);
+        return true;
+    }
+
     if (!isValidDate(year, month, day) || hour >= 24 || minute >= 60 || second >= 60) {
         Serial.println(F("Invalid date or time"));
         return false;
     }
-    events.emplace(year, month, day, hour, minute, second, scenario, cycle, description);
+    events.emplace(year, month, day, hour, minute, second, scenario, cycle, description, isDaily);
     return true;
+}
+
+void EventManager::addDailyEvent(uint8_t hour, uint8_t minute, uint8_t second, 
+                                 uint8_t scenario, uint8_t cycle, const String& description) {
+    DateTime now = rtc.now();
+    DateTime eventTime(now.year(), now.month(), now.day(), hour, minute, second);
+    
+    if (eventTime < now) {
+        eventTime = eventTime + TimeSpan(1, 0, 0, 0);  // Move to next day if the time has passed for today
+    }
+
+    events.emplace(eventTime.year(), eventTime.month(), eventTime.day(), 
+                   hour, minute, second, scenario, cycle, description, true);
 }
 
 bool EventManager::removeEvent(uint64_t timeCode) {
@@ -48,12 +66,28 @@ void EventManager::update() {
         
         while (nextEvent != events.end() && currentTimeCode >= nextEvent->timeCode) {
             pendingEvents.push(*nextEvent);
-            events.erase(nextEvent);
+            if (nextEvent->isDaily) {
+                rescheduleEvent(*nextEvent);
+            } else {
+                events.erase(nextEvent);
+            }
             nextEvent = findNextEvent(currentTimeCode);
         }
 
         processNextPendingEvent();
     }
+}
+
+void EventManager::rescheduleEvent(const Event& event) {
+    uint16_t year;
+    uint8_t month, day, hour, minute, second;
+    Event::decodeTime(event.timeCode, year, month, day, hour, minute, second);
+    
+    DateTime nextOccurrence = rtc.now() + TimeSpan(1, 0, 0, 0);  // Add one day
+    
+    events.erase(event);
+    events.emplace(nextOccurrence.year(), nextOccurrence.month(), nextOccurrence.day(),
+                   hour, minute, second, event.scenario, event.cycle, event.description, true);
 }
 
 uint8_t EventManager::getCurrentScenario() const {
@@ -74,8 +108,9 @@ void EventManager::printEvents() const {
         uint16_t year;
         uint8_t month, day, hour, minute, second;
         Event::decodeTime(event.timeCode, year, month, day, hour, minute, second);
-        Serial.printf("%04d-%02d-%02d %02d:%02d:%02d - Scenario: %d, Cycle: %d, Desc: %s\n",
-                      year, month, day, hour, minute, second, event.scenario, event.cycle, event.description.c_str());
+        Serial.printf("%04d-%02d-%02d %02d:%02d:%02d - Scenario: %d, Cycle: %d, Desc: %s, Daily: %s\n",
+                      year, month, day, hour, minute, second, event.scenario, event.cycle, 
+                      event.description.c_str(), event.isDaily ? "Yes" : "No");
     }
 }
 
@@ -90,18 +125,6 @@ void EventManager::processNextPendingEvent() {
         const Event& event = pendingEvents.front();
         currentScenario = event.scenario;
         currentCycle = event.cycle;
-        
-        // Print event information
-        uint16_t year;
-        uint8_t month, day, hour, minute, second;
-        Event::decodeTime(event.timeCode, year, month, day, hour, minute, second);
-        
-        // Serial.println("Event Triggered:");
-        // Serial.printf("Time: %04d-%02d-%02d %02d:%02d:%02d\n", year, month, day, hour, minute, second);
-        // Serial.printf("Scenario: %d\n", event.scenario);
-        // Serial.printf("Cycle: %d\n", event.cycle);
-        // Serial.printf("Description: %s\n", event.description.c_str());
-        // Serial.println("------------------------------");
         
         if (eventCallback) {
             eventCallback(event);
