@@ -1,5 +1,6 @@
 // OLEDManager.cpp
 #include "OLEDManager.h"
+#include <math.h>
 
 OLEDManager::OLEDManager(uint8_t w, uint8_t h, int8_t rst_pin)
     : display(w, h, &Wire, rst_pin), width(w), height(h), eventDisplayStartTime(0), isDisplayingEvent(false) {}
@@ -116,8 +117,9 @@ void OLEDManager::showTVTurnOnEffect() {
 
     //starfieldEffect2();
 
-    marbleDropEffect();
+    //marbleDropEffect();
 
+    fallingLettersEffect();
 
     //rainEffect();
 
@@ -1001,4 +1003,104 @@ void OLEDManager::updateMarble(Marble& marble, float dt) {
             marble.active = false;
         }
     }
+}
+
+void OLEDManager::fallingLettersEffect() {
+    const float GRAVITY = 0.2;
+    const float BOUNCE_DAMPING = 0.7;
+    const float FLOOR_Y = height - 30;  // Leave some space at the bottom
+    const float DT = 0.5;  // Time step for physics simulation
+    const int LETTER_WIDTH = 8;  // Width of each letter (including spacing)
+    const int LETTER_HEIGHT = 10;  // Height of each letter
+
+    std::string message = getRandomMessage();
+    std::vector<FallingLetter> letters;
+
+    // Calculate starting X position to center the message
+    int totalWidth = message.length() * LETTER_WIDTH;
+    int startX = (width - totalWidth) / 2;
+
+    // Initialize letters
+    for (size_t i = 0; i < message.length(); i++) {
+        FallingLetter letter;
+        letter.letter = message[i];
+        letter.x = startX + i * LETTER_WIDTH;
+        letter.y = random(-50, -10);
+        letter.vy = 0;
+        letter.settled = false;
+        letter.targetY = FLOOR_Y - LETTER_HEIGHT;  // Set target Y position
+        letters.push_back(letter);
+    }
+
+    unsigned long startTime = millis();
+    bool allSettled = false;
+
+    while (millis() - startTime < 20000) {  // Run for 20 seconds max
+        display.clearDisplay();
+
+        // Update and draw letters
+        allSettled = true;
+        for (auto& letter : letters) {
+            if (!letter.settled) {
+                updateLetter(letter);
+                allSettled = false;
+            }
+        }
+        drawLetters(letters);
+
+        display.display();
+        delay(20);
+
+        // If all letters have settled, wait for 3 seconds and then exit
+        if (allSettled) {
+            delay(3000);
+            break;
+        }
+    }
+}
+
+void OLEDManager::updateLetter(FallingLetter& letter) {
+    const float GRAVITY = 0.2;
+    const float BOUNCE_DAMPING = 0.7;
+    const float STOP_VELOCITY = 0.5;
+    const float DT = 0.5;
+
+    // Apply gravity
+    letter.vy += GRAVITY * DT;
+
+    // Update position
+    letter.y += letter.vy * DT;
+
+    // Check for floor collision
+    if (letter.y > letter.targetY) {
+        letter.y = letter.targetY;
+        letter.vy = -letter.vy * BOUNCE_DAMPING;  // Bounce with damping
+
+        // Check if letter should stop bouncing
+        if (abs(letter.vy) < STOP_VELOCITY) {
+            letter.vy = 0;
+            letter.settled = true;
+            letter.y = letter.targetY;  // Ensure letter is exactly at the target position
+        }
+    }
+}
+
+void OLEDManager::drawLetters(const std::vector<FallingLetter>& letters) {
+    display.setTextSize(1);
+    display.setTextColor(SSD1306_WHITE);
+    for (const auto& letter : letters) {
+        display.setCursor(letter.x, letter.y);
+        display.print(letter.letter);
+    }
+}
+
+std::string OLEDManager::getRandomMessage() {
+    const char* messages[] = {
+        "TrafficLight",
+        "Designing Emotions",
+        "Centurion",
+        "CENTURION",
+        "Mater Fatima"
+    };
+    return messages[random(0, 5)];
 }

@@ -56,6 +56,9 @@ private:
 
     void marbleDropEffect();
 
+    // New falling letters effect method
+    void fallingLettersEffect();
+
     // New neural cell brain effect method
     void neuralCellBrainEffect();
 
@@ -133,6 +136,20 @@ private:
     // Helper methods for neural network simulation
     void updateNeurons(std::vector<Neuron>& neurons);
     void drawNeurons(const std::vector<Neuron>& neurons);
+
+    // Updated Helper struct for letter properties
+    struct FallingLetter {
+        char letter;
+        float x, y;
+        float vy;
+        bool settled;
+        float targetY;  // Added targetY member
+    };
+
+    // Helper methods for falling letters effect
+    void updateLetter(FallingLetter& letter);
+    void drawLetters(const std::vector<FallingLetter>& letters);
+    std::string getRandomMessage();
 };
 
 #endif
