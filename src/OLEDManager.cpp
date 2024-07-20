@@ -63,8 +63,7 @@ void OLEDManager::showTVTurnOnEffect() {
     for (int i = 0; i < 3; i++) {
         drawTVNoise();
         delay(100);
-        display.clearDisplay();
-        display.display();
+        clear();
         delay(50);
     }
     
@@ -76,8 +75,7 @@ void OLEDManager::showTVTurnOnEffect() {
     }
     
     delay(200);
-    display.clearDisplay();
-    display.display();
+    clear();
     
     // Show dynamic noise for 3 seconds
     unsigned long startTime = millis();
