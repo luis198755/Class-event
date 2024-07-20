@@ -13,7 +13,8 @@ void onEventTriggered(const EventManager::Event& event) {
     Serial.printf("Event triggered - Scenario: %d, Cycle: %d, Desc: %s\n",
     event.scenario, event.cycle, event.description.c_str());
     // Implement your traffic light control logic here
-}
+    oledManager.displayEvent(event);
+} 
 
 void setup() {
     Serial.begin(115200);
@@ -39,7 +40,7 @@ void setup() {
     
     // Add your events
     eventManager.addEvent(2023, 7, 20, 8, 0, 0, 1, 1, "Morning Rush Hour");
-    eventManager.addEvent(2024, 7, 19, 22, 10, 0, 2, 1, "Evening Rush Hour");
+    eventManager.addEvent(2024, 7, 19, 22, 32, 0, 2, 1, "Evening Rush Hour");
 
     eventManager.printEvents();
 }
