@@ -83,6 +83,7 @@ void OLEDManager::showTVTurnOnEffect() {
 }
 
 void OLEDManager::flickerEffect() {
+    clear();
     for (int i = 0; i < 10; i++) {
         display.invertDisplay(true);
         delay(50);
