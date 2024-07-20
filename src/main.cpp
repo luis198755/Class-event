@@ -44,8 +44,12 @@ void setup() {
     // Add your events
     eventManager.addEvent(2024, 7, 20, 7, 12, 0, 1, 1, "Morning Rush Hour");
     eventManager.addEvent(0, 0, 0, 7, 10, 0, 2, 1, "Daily Evening Rush Hour", true);
-    
+
     eventManager.printEvents();
+
+    if (oledManager.begin()) {
+        oledManager.showTVTurnOnEffect();
+    }
 }
 
 void loop() {
